@@ -1,0 +1,12 @@
+{
+  "name": "my-claude-mods",
+  "description": "Personal Claude Code mods",
+  "owner": { "name": "Pawandeep" },
+  "plugins": [
+    {
+      "name": "usage-band",
+      "source": "./plugins/usage-band",
+      "description": "Always-on band showing your 5-hour and weekly usage limits"
+    }
+  ]
+}
