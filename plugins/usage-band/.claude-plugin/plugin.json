@@ -1,7 +1,26 @@
 {
   "name": "usage-band",
-  "version": "1.4.0",
-  "description": "Always-on band showing your 5-hour and weekly usage limits",
-  "author": { "name": "Pawandeep" },
+  "displayName": "Usage Band: 5-hour & weekly limits",
+  "version": "1.5.0",
+  "description": "Always-visible Claude Code usage limits: 5-hour and weekly percentage with reset countdown, plus one-click new chat and push buttons. A Claude Code mod for the Desktop app and terminal.",
+  "author": {
+    "name": "Pawandeep"
+  },
+  "homepage": "https://github.com/pawandeepdhall/claude-mods#usage-band",
+  "repository": "https://github.com/pawandeepdhall/claude-mods",
+  "keywords": [
+    "usage",
+    "usage-limits",
+    "rate-limit",
+    "5-hour-limit",
+    "weekly-limit",
+    "quota",
+    "reset-timer",
+    "status-bar",
+    "claude-code-mod",
+    "claude-desktop",
+    "new-chat",
+    "git-push"
+  ],
   "types": "./types/index.d.ts"
 }

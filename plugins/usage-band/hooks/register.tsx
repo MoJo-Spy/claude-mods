@@ -41,7 +41,7 @@ const SEND_CMD_N = 'tell application "System Events" to keystroke "n" using comm
 
 async function pressNewChat($: EngineInterface) {
   try {
-    await $.process.run(['wscript.exe', '//B', '//Nologo', `${$.plugin.root}/bin/new-chat.vbs`])
+    await $.process.run(['wscript.exe', '//B', '//Nologo', `${$.plugin.root}/scripts/new-chat.vbs`])
   } catch {
     await $.process.run(['osascript', '-e', SEND_CMD_N]).catch(() => undefined)
   }

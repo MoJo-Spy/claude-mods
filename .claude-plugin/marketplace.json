@@ -1,6 +1,6 @@
 {
   "name": "my-claude-mods",
-  "description": "Personal Claude Code mods",
+  "description": "Claude Code mods: always-visible usage limits (5-hour and weekly), a prompt queue, and one-click new chat and push buttons.",
   "owner": {
     "name": "Pawandeep"
   },
@@ -8,12 +8,35 @@
     {
       "name": "usage-band",
       "source": "./plugins/usage-band",
-      "description": "Always-on band showing your 5-hour and weekly usage limits"
+      "description": "Always-visible Claude Code usage limits: 5-hour and weekly percentage with reset countdown, plus one-click new chat and push buttons. A Claude Code mod for the Desktop app and terminal.",
+      "keywords": [
+        "usage",
+        "usage-limits",
+        "rate-limit",
+        "5-hour-limit",
+        "weekly-limit",
+        "quota",
+        "reset-timer",
+        "status-bar",
+        "claude-code-mod",
+        "claude-desktop",
+        "new-chat",
+        "git-push"
+      ]
     },
     {
       "name": "prompt-queue",
       "source": "./plugins/prompt-queue",
-      "description": "Queue prompts while Claude works; they run one after another"
+      "description": "Queue prompts while Claude Code is working: they wait in an Up next list and run one after another, with send-now and remove buttons. A Claude Code mod.",
+      "keywords": [
+        "queue",
+        "prompt-queue",
+        "message-queue",
+        "workflow",
+        "productivity",
+        "claude-code-mod",
+        "claude-desktop"
+      ]
     }
   ]
 }
