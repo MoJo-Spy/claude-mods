@@ -1,6 +1,6 @@
 {
   "name": "my-claude-mods",
-  "description": "Claude Code mods: always-visible usage limits (5-hour and weekly), a prompt queue, and one-click new chat and push buttons.",
+  "description": "Claude Code mods: always-visible usage limits (5-hour and weekly) and one-click next-step suggestions, plus new chat and push buttons.",
   "owner": {
     "name": "Pawandeep"
   },
@@ -25,14 +25,14 @@
       ]
     },
     {
-      "name": "prompt-queue",
-      "source": "./plugins/prompt-queue",
-      "description": "Queue prompts while Claude Code is working: they wait in an Up next list and run one after another, with send-now and remove buttons. A Claude Code mod.",
+      "name": "next-steps",
+      "source": "./plugins/next-steps",
+      "description": "After each Claude Code reply, suggests up to 3 next steps as one-click buttons above the prompt. A Claude Code mod.",
       "keywords": [
-        "queue",
-        "prompt-queue",
-        "message-queue",
-        "workflow",
+        "next-steps",
+        "suggestions",
+        "follow-up",
+        "prompt-suggestions",
         "productivity",
         "claude-code-mod",
         "claude-desktop"

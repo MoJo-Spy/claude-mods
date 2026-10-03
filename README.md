@@ -1,17 +1,17 @@
-# Claude Code Mods: Usage Limits Tracker & Prompt Queue
+# Claude Code Mods: Usage Limits Tracker & One-Click Next Steps
 
-**See your Claude Code 5-hour and weekly usage limits at all times**, queue up prompts while Claude works, and open a new chat or push to GitHub in one click. Two free, open-source [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overview) for the **Claude Desktop app** (Code tab) and the **Claude Code terminal**.
-
-![Claude Code usage limits mod: 5-hour and weekly usage percentage with reset countdown above the prompt](docs/usage-band.png)
+**See your Claude Code 5-hour and weekly usage limits at all times**, get **one-click next-step suggestions** after every reply, and open a new chat or push to GitHub in one click. Free, open-source [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overview) for the **Claude Desktop app** (Code tab) and the **Claude Code terminal**.
 
 Website: **https://pawandeepdhall.github.io/claude-mods/**
+
+![Claude Code usage limits mod: 5-hour and weekly usage percentage with reset countdown above the prompt](docs/usage-band.png)
 
 Install in 30 seconds:
 
 ```bash
 claude plugin marketplace add pawandeepdhall/claude-mods
 claude plugin install usage-band@my-claude-mods
-claude plugin install prompt-queue@my-claude-mods
+claude plugin install next-steps@my-claude-mods
 ```
 
 ---
@@ -28,14 +28,14 @@ Stop guessing how close you are to your Claude limit or running `/usage` again a
 
 It updates on its own, works on Pro and Max plans, shows Team and Enterprise spend limits, and hides itself on API-key accounts, where there are no limits to show. It follows your light or dark theme.
 
-## prompt-queue: queue prompts while Claude Code works
+## next-steps: one-click next-step suggestions in Claude Code
 
-Think of the next thing to ask while Claude is still busy? Type it. Instead of interrupting the running task, it waits in an **Up next** list on the left of the band and **runs automatically** when the current task finishes, one after another.
+Not sure what to ask next? After every reply, `next-steps` shows **up to 3 suggested next steps as buttons** on the left of the band, such as *Add tests for the parser* or *Deploy to staging*. **Click one and it is sent** as your next message.
 
-- **↑** on an item: stop the current task and send that prompt now
-- **✕** on an item: remove it; **Clear** empties the list
-- Pauses safely if you stop Claude (Esc) or a task fails, with a **Resume** button
-- Start a prompt with `now:` to skip the queue
+- Suggestions are short (7 words or fewer) and specific to what you just asked and what Claude answered
+- They hide while Claude is working and refresh after each reply
+- Typing your own message clears them
+- Uses one small, fast Haiku request per reply to write the suggestions
 
 ## Requirements
 
@@ -52,7 +52,7 @@ Run these once per computer (no GitHub account needed):
 ```bash
 claude plugin marketplace add pawandeepdhall/claude-mods
 claude plugin install usage-band@my-claude-mods
-claude plugin install prompt-queue@my-claude-mods
+claude plugin install next-steps@my-claude-mods
 ```
 
 Or inside a Claude Code session: `/plugin marketplace add pawandeepdhall/claude-mods`, then `/plugin install usage-band@my-claude-mods`. In a session that was already open, run `/reload-plugins`.
@@ -62,7 +62,7 @@ Or inside a Claude Code session: `/plugin marketplace add pawandeepdhall/claude-
 ```bash
 claude plugin marketplace update my-claude-mods
 claude plugin update usage-band@my-claude-mods
-claude plugin update prompt-queue@my-claude-mods
+claude plugin update next-steps@my-claude-mods
 ```
 
 ## What these mods can access
@@ -70,7 +70,7 @@ claude plugin update prompt-queue@my-claude-mods
 Mods run with your permissions, so here is exactly what each one does. Check it yourself with `claude plugin validate ./plugins/<mod>`.
 
 - **usage-band** reads your session's usage figures (`$.session.usage`), checks whether the folder is a git repo (`git rev-parse`), runs a one-line script that presses Ctrl+N when you click **＋**, and submits a commit-and-push request to Claude when you click **↑**. Nothing is sent anywhere else.
-- **prompt-queue** holds prompts you type while Claude is working and submits them, in order, when the task ends. Nothing is sent anywhere else.
+- **next-steps** sends your last request and Claude's last answer (trimmed) to Claude Haiku through your own Claude Code session (`$.model.complete`) to write the suggestions, and submits a suggestion as your message when you click it. Nothing is sent anywhere else.
 
 ## FAQ
 
@@ -78,7 +78,7 @@ Mods run with your permissions, so here is exactly what each one does. Check it 
 
 **When does my Claude 5-hour limit reset?** `usage-band` shows a live countdown (↻) next to each limit.
 
-**Can I queue messages in Claude Code?** Yes. With `prompt-queue`, anything you type while Claude is working waits its turn and runs automatically.
+**Can Claude Code suggest what to do next?** Yes. With `next-steps`, up to 3 suggested next steps appear as buttons after every reply; click one to send it.
 
 **Does it work in the Claude Desktop app?** Yes. Both mods work in the Desktop app's Code tab and in the terminal.
 
@@ -86,4 +86,4 @@ Mods run with your permissions, so here is exactly what each one does. Check it 
 
 Ideas and pull requests are welcome. Each mod is a folder under `plugins/`; add a new one and list it in `.claude-plugin/marketplace.json`.
 
-Keywords: Claude Code mod, Claude Code plugin, Claude usage tracker, Claude usage limit, 5-hour limit, weekly limit, rate limit monitor, Claude Desktop, prompt queue, message queue, Anthropic Claude.
+Keywords: Claude Code mod, Claude Code plugin, Claude usage tracker, Claude usage limit, 5-hour limit, weekly limit, rate limit monitor, Claude Desktop, next steps, follow-up suggestions, prompt suggestions, Anthropic Claude.
