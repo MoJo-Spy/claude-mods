@@ -1,0 +1,7 @@
+{
+  "name": "prompt-queue",
+  "version": "1.0.0",
+  "description": "Queue prompts while Claude works; they run one after another",
+  "author": { "name": "Pawandeep" },
+  "types": "./types/index.d.ts"
+}

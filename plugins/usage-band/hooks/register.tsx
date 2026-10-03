@@ -153,7 +153,9 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) return next(e)
+    // Whatever else draws in the band (another mod) stays, on the left.
+    const inner = await next(e)
+    if (e.props.hasSurvey) return inner
 
     const els = $.ui.resolve(e) as Record<string, any>
     const { Box, Text } = els
@@ -162,9 +164,10 @@ export const register: Register = on => {
 
     if (rows.length === 0) {
       // No limits on this account (e.g. an API key): stay out of the way.
-      if (await read($, measured)) return next(e)
+      if (await read($, measured)) return inner
       return (
-        <Box flexDirection="row" justifyContent="flex-end">
+        <Box flexDirection="row" flexGrow={1}>
+          <Box flexGrow={1}>{inner}</Box>
           <Text dimColor>usage: waiting for first reply</Text>
         </Box>
       )
@@ -176,16 +179,17 @@ export const register: Register = on => {
         .map(r => [`${r.label} ${r.pct}% used`, r.resetIn, paceText(r)].filter(Boolean).join(', '))
         .join('; ')
       return (
-        <Box flexDirection="row" alignItems="center">
-          {/* left side kept free for more widgets */}
-          <Box flexGrow={1} />
+        <Box flexDirection="row" alignItems="center" flexGrow={1}>
+          {/* left side: other mods in the band */}
+          <Box flexGrow={1}>{inner}</Box>
           <Svg source={svgCard(rows)} alt={alt} width={SVG_W} height={svgHeight(rows.length)} />
         </Box>
       )
     }
 
     return (
-      <Box flexDirection="row" gap={3} justifyContent="flex-end">
+      <Box flexDirection="row" gap={3} flexGrow={1}>
+        <Box flexGrow={1}>{inner}</Box>
         {rows.map(r => (
           <Box key={r.kind} flexDirection="row">
             <Text dimColor>{r.short} </Text>
