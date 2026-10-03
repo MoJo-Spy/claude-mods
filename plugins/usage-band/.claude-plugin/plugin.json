@@ -8,6 +8,7 @@
   },
   "homepage": "https://github.com/pawandeepdhall/claude-mods#usage-band",
   "repository": "https://github.com/pawandeepdhall/claude-mods",
+  "license": "MIT",
   "keywords": [
     "usage",
     "usage-limits",

@@ -87,3 +87,7 @@ Mods run with your permissions, so here is exactly what each one does. Check it 
 Ideas and pull requests are welcome. Each mod is a folder under `plugins/`; add a new one and list it in `.claude-plugin/marketplace.json`.
 
 Keywords: Claude Code mod, Claude Code plugin, Claude usage tracker, Claude usage limit, 5-hour limit, weekly limit, rate limit monitor, Claude Desktop, next steps, follow-up suggestions, prompt suggestions, Anthropic Claude.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
