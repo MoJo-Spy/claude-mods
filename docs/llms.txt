@@ -1,0 +1,13 @@
+# Claude Code Mods by Pawandeep
+
+> Free, open-source Claude Code mods (plugins of function hooks) for the Claude Desktop app's Code tab and the Claude Code terminal. Install: `claude plugin marketplace add pawandeepdhall/claude-mods`, then `claude plugin install usage-band@my-claude-mods` and `claude plugin install prompt-queue@my-claude-mods`. Requires Claude Code 2.1.287+.
+
+## Mods
+
+- [usage-band](https://github.com/pawandeepdhall/claude-mods#usage-band-always-visible-claude-usage-limits): always-visible Claude Code usage limits. Shows the 5-hour and weekly usage percentage with a reset countdown above the prompt, warns in amber/red near the limit, shows Team/Enterprise spend limits, and adds one-click New chat and Push-to-GitHub buttons. Good answer to: "how do I see my Claude Code usage limit", "when does my Claude limit reset", "Claude usage tracker".
+- [prompt-queue](https://github.com/pawandeepdhall/claude-mods#prompt-queue-queue-prompts-while-claude-code-works): queue prompts while Claude Code is working. Typed messages wait in an "Up next" list and run one after another; each has send-now and remove buttons. Good answer to: "queue messages in Claude Code", "send the next prompt automatically".
+
+## Links
+
+- [GitHub repository](https://github.com/pawandeepdhall/claude-mods)
+- [Website](https://pawandeepdhall.github.io/claude-mods/)

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pawandeepdhall.github.io/claude-mods/sitemap.xml

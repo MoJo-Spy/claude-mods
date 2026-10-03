@@ -4,6 +4,8 @@
 
 ![Claude Code usage limits mod: 5-hour and weekly usage percentage with reset countdown above the prompt](docs/usage-band.png)
 
+Website: **https://pawandeepdhall.github.io/claude-mods/**
+
 Install in 30 seconds:
 
 ```bash

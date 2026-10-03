@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code Usage Limits Mod: See Your 5-Hour &amp; Weekly Limits | Claude Code Mods</title>
+<meta name="description" content="Free Claude Code mods: always see your Claude 5-hour and weekly usage limits with a reset countdown, queue prompts while Claude works, and open a new chat or push to GitHub in one click. Works in Claude Desktop and the terminal.">
+<meta name="keywords" content="Claude Code mod, Claude Code mods, Claude Code plugin, Claude usage limit, Claude 5-hour limit, Claude weekly limit, Claude usage tracker, Claude Code usage, rate limit, Claude Desktop, prompt queue">
+<link rel="canonical" href="https://pawandeepdhall.github.io/claude-mods/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Claude Code Usage Limits Mod: 5-hour &amp; weekly limits, always visible">
+<meta property="og:description" content="See your Claude Code usage limits at all times, queue prompts while Claude works, and open a new chat or push in one click.">
+<meta property="og:url" content="https://pawandeepdhall.github.io/claude-mods/">
+<meta property="og:image" content="https://pawandeepdhall.github.io/claude-mods/usage-band.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Claude Code Usage Limits Mod">
+<meta name="twitter:description" content="Always-visible Claude 5-hour and weekly usage limits, plus a prompt queue. Free Claude Code mods.">
+<meta name="twitter:image" content="https://pawandeepdhall.github.io/claude-mods/usage-band.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "usage-band: Claude Code usage limits mod",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Windows, macOS, Linux",
+      "description": "A Claude Code mod that always shows your 5-hour and weekly usage limits with a reset countdown, plus one-click new chat and push buttons.",
+      "url": "https://pawandeepdhall.github.io/claude-mods/",
+      "downloadUrl": "https://github.com/pawandeepdhall/claude-mods",
+      "image": "https://pawandeepdhall.github.io/claude-mods/usage-band.png",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "Pawandeep" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "prompt-queue: Claude Code prompt queue mod",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Windows, macOS, Linux",
+      "description": "A Claude Code mod that queues prompts you type while Claude is working and runs them one after another.",
+      "url": "https://pawandeepdhall.github.io/claude-mods/#prompt-queue",
+      "downloadUrl": "https://github.com/pawandeepdhall/claude-mods",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "Pawandeep" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "How do I see my Claude Code usage limit?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Install the usage-band mod: run claude plugin marketplace add pawandeepdhall/claude-mods, then claude plugin install usage-band@my-claude-mods. Your 5-hour and weekly usage then show above the prompt in every session." } },
+        { "@type": "Question", "name": "When does my Claude 5-hour limit reset?",
+          "acceptedAnswer": { "@type": "Answer", "text": "usage-band shows a live countdown next to each limit, for example ↻ 2h 55m for the 5-hour limit and ↻ 4d 0h for the weekly limit." } },
+        { "@type": "Question", "name": "Can I queue messages in Claude Code?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. With the prompt-queue mod, anything you type while Claude is working waits in an Up next list and runs automatically when the current task finishes." } },
+        { "@type": "Question", "name": "Do these mods work in the Claude Desktop app?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Both mods work in the Claude Desktop app's Code tab and in the Claude Code terminal, on Claude Code 2.1.287 or later." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+  :root { --bg:#faf9f5; --fg:#1f1e1d; --muted:#6b6a68; --card:#ffffff; --line:#e6e4dd; --accent:#c96442; --code:#f0eee6; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#262624; --fg:#ecebe8; --muted:#a3a19c; --card:#30302e; --line:#3d3d3a; --accent:#e07a55; --code:#1f1e1d; }
+  }
+  :root[data-theme="dark"] { --bg:#262624; --fg:#ecebe8; --muted:#a3a19c; --card:#30302e; --line:#3d3d3a; --accent:#e07a55; --code:#1f1e1d; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui, "Segoe UI", -apple-system, sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height:1.15; margin: 0 0 12px; letter-spacing:-.01em; }
+  h2 { font-size: 22px; margin: 44px 0 10px; }
+  h3 { font-size: 17px; margin: 22px 0 6px; }
+  p.lead { font-size: 18px; color: var(--muted); margin: 0 0 24px; }
+  a { color: var(--accent); }
+  img.shot { width:100%; height:auto; border:1px solid var(--line); border-radius:12px; display:block; margin: 8px 0 6px; }
+  .cap { color:var(--muted); font-size:14px; margin:0 0 24px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; font:14px/1.55 ui-monospace, Consolas, "SF Mono", Menlo, monospace; }
+  code { font-family: ui-monospace, Consolas, "SF Mono", Menlo, monospace; font-size: .92em; }
+  .cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .card h3 { margin-top:0; }
+  ul { padding-left: 20px; }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:10px 16px; border-radius:8px; font-weight:600; margin-right:10px; }
+  .btn.ghost { background:transparent; color:var(--fg); border:1px solid var(--line); }
+  footer { color:var(--muted); font-size:14px; margin-top:48px; border-top:1px solid var(--line); padding-top:16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>See your Claude Code usage limits at all times</h1>
+  <p class="lead">Free, open-source <strong>Claude Code mods</strong>: your <strong>5-hour and weekly usage</strong> with a reset countdown always above the prompt, a <strong>prompt queue</strong> for while Claude works, and one-click <strong>new chat</strong> and <strong>push</strong> buttons. Works in the Claude Desktop app and the terminal.</p>
+  <p><a class="btn" href="https://github.com/pawandeepdhall/claude-mods">Get it on GitHub</a><a class="btn ghost" href="#install">Install in 30 seconds</a></p>
+
+  <img class="shot" src="usage-band.png" width="1212" height="96" alt="Claude Code usage limits mod showing 5-hour usage at 14% resetting in 2h 55m and weekly usage at 76% resetting in 4 days, above the Claude Code prompt">
+  <p class="cap">The band above the Claude Code prompt: queue on the left, usage limits on the right.</p>
+
+  <h2 id="install">Install</h2>
+  <p>Needs Claude Code 2.1.287 or later. Run once per computer; no GitHub account needed:</p>
+  <pre>claude plugin marketplace add pawandeepdhall/claude-mods
+claude plugin install usage-band@my-claude-mods
+claude plugin install prompt-queue@my-claude-mods</pre>
+  <p>Already in a session? Run <code>/reload-plugins</code>.</p>
+
+  <h2>What you get</h2>
+  <div class="cards">
+    <section class="card" id="usage-band">
+      <h3>usage-band: Claude usage limits tracker</h3>
+      <ul>
+        <li>5-hour limit: percent used and time to reset</li>
+        <li>Weekly limit: percent used and days to reset</li>
+        <li>Turns amber, then red, before you hit the limit</li>
+        <li><strong>＋</strong> opens a new chat in one click</li>
+        <li><strong>↑</strong> commits and pushes to GitHub (git projects)</li>
+      </ul>
+    </section>
+    <section class="card" id="prompt-queue">
+      <h3>prompt-queue: queue prompts in Claude Code</h3>
+      <ul>
+        <li>Type while Claude works; it waits in <em>Up next</em></li>
+        <li>Runs one after another, automatically</li>
+        <li><strong>↑</strong> sends one now, <strong>✕</strong> removes it</li>
+        <li>Pauses safely if you stop Claude</li>
+      </ul>
+    </section>
+  </div>
+
+  <h2>FAQ</h2>
+  <h3>How do I see my Claude Code usage limit?</h3>
+  <p>Install <code>usage-band</code>. Your 5-hour and weekly usage show above the prompt in every session, instead of running <code>/usage</code> over and over.</p>
+  <h3>When does my Claude 5-hour limit reset?</h3>
+  <p>The mod shows a live countdown (↻) next to each limit, such as ↻ 2h 55m.</p>
+  <h3>Can I queue messages in Claude Code?</h3>
+  <p>Yes. With <code>prompt-queue</code>, what you type while Claude is working waits its turn and runs automatically when the current task finishes.</p>
+  <h3>Is it safe?</h3>
+  <p>Mods run with your permissions, so the <a href="https://github.com/pawandeepdhall/claude-mods#what-these-mods-can-access">README lists exactly what each mod does</a>. Nothing is sent anywhere. Check it yourself with <code>claude plugin validate</code>.</p>
+
+  <footer>Made by Pawandeep. Not affiliated with Anthropic. Source and issues on <a href="https://github.com/pawandeepdhall/claude-mods">GitHub</a>.</footer>
+</main>
+</body>
+</html>
