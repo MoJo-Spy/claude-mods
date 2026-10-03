@@ -1,6 +1,6 @@
 {
   "name": "usage-band",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Always-on band showing your 5-hour and weekly usage limits",
   "author": { "name": "Pawandeep" },
   "types": "./types/index.d.ts"

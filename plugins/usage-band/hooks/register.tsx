@@ -8,6 +8,29 @@ const now = atom({ plugin: 'usage-band', key: 'now' } as const, 0)
 // True once the engine has measured the session: an account with no limits
 // (an API key) then shows nothing rather than a waiting message.
 const measured = atom({ plugin: 'usage-band', key: 'measured' } as const, false)
+// Whether the session's folder is a git repository: the Push button shows only then.
+const isRepo = atom({ plugin: 'usage-band', key: 'isRepo' } as const, false)
+
+// ---------- push button ----------
+
+// Hands the job to Claude rather than running a bare git push: it commits what is
+// uncommitted with a real message, pushes, and asks before anything risky.
+const PUSH_PROMPT =
+  'Commit all my current changes with a clear commit message and push them to GitHub. ' +
+  'If there is nothing to commit, just push. Tell me in one line what you pushed.'
+
+async function checkRepo($: EngineInterface) {
+  try {
+    const r = await $.process.run(['git', 'rev-parse', '--is-inside-work-tree'])
+    await update($, isRepo, () => r.exitCode === 0 && r.stdout.trim() === 'true')
+  } catch {
+    await update($, isRepo, () => false) // no git installed
+  }
+}
+
+async function pushToGitHub($: EngineInterface) {
+  await $.prompt.submit({ text: PUSH_PROMPT, asUser: true })
+}
 
 // ---------- new chat button ----------
 
@@ -137,6 +160,7 @@ const COLORS = { ok: 'green', warn: 'yellow', hot: 'red' } as const
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const result = await next(e)
+    void checkRepo($)
     const t = await $.clock.now()
     await update($, now, () => t)
     const usage = await $.session.usage()
@@ -163,6 +187,9 @@ export const register: Register = on => {
 
     const els = $.ui.resolve(e) as Record<string, any>
     const { Box, Text, Button } = els
+    const pushButton = (await read($, isRepo)) ? (
+      <Button key="push" label="↑" variant="primary" onPress={() => pushToGitHub($)} />
+    ) : null
     const newChatButton = (
       // The app draws its own buttons; "primary" is its accent (Claude orange) style.
       <Button key="new-chat" label="+" variant="primary" onPress={() => pressNewChat($)} />
@@ -176,7 +203,8 @@ export const register: Register = on => {
         return (
           <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1}>
             <Box flexGrow={1}>{inner}</Box>
-            {newChatButton}
+            {pushButton}
+          {newChatButton}
           </Box>
         )
       }
@@ -184,6 +212,7 @@ export const register: Register = on => {
         <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1}>
           <Box flexGrow={1}>{inner}</Box>
           <Text dimColor>usage: waiting for first reply</Text>
+          {pushButton}
           {newChatButton}
         </Box>
       )
@@ -199,6 +228,7 @@ export const register: Register = on => {
           {/* left side: other mods in the band */}
           <Box flexGrow={1}>{inner}</Box>
           <Svg source={svgCard(rows)} alt={alt} width={SVG_W} height={svgHeight(rows.length)} />
+          {pushButton}
           {newChatButton}
         </Box>
       )
@@ -215,7 +245,8 @@ export const register: Register = on => {
           </Box>
         ))}
         <Text dimColor>│</Text>
-        {newChatButton}
+        {pushButton}
+          {newChatButton}
       </Box>
     )
   })
