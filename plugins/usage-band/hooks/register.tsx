@@ -173,10 +173,9 @@ export const register: Register = on => {
   })
 
   on('session.measure', async ($, e, next) => {
-    await update($, measured, () => true)
-    if (e.changed.includes('rateLimits')) {
-      await update($, limits, () => e.rateLimits.map(l => ({ ...l })))
-    }
+    // In the background, so Claude Code never waits on the widget.
+    void update($, measured, () => true)
+    if (e.changed.includes('rateLimits')) void update($, limits, () => e.rateLimits.map(l => ({ ...l })))
     return next(e)
   })
 
@@ -187,19 +186,25 @@ export const register: Register = on => {
 
     const els = $.ui.resolve(e) as Record<string, any>
     const { Box, Text, Button } = els
-    const pushButton = (await read($, isRepo)) ? (
+    const [repo, savedNow, saved, wasMeasured] = await Promise.all([
+      read($, isRepo),
+      read($, now),
+      read($, limits),
+      read($, measured),
+    ])
+    const pushButton = repo ? (
       <Button key="push" label="↑" variant="primary" onPress={() => pushToGitHub($)} />
     ) : null
     const newChatButton = (
       // The app draws its own buttons; "primary" is its accent (Claude orange) style.
       <Button key="new-chat" label="+" variant="primary" onPress={() => pressNewChat($)} />
     )
-    const at = (await read($, now)) || (await $.clock.now())
-    const rows = (await read($, limits)).map(l => toRow(l, at))
+    const at = savedNow || (await $.clock.now())
+    const rows = saved.map(l => toRow(l, at))
 
     if (rows.length === 0) {
       // No limits on this account (e.g. an API key): stay out of the way.
-      if (await read($, measured)) {
+      if (wasMeasured) {
         return (
           <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1}>
             <Box flexGrow={1}>{inner}</Box>

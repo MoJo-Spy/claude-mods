@@ -29,13 +29,15 @@ const COMPOSE_SYSTEM =
 
 const MAX = 6
 
+// The model that writes the message Send submits. 'haiku' is near-instant; 'sonnet' is
+// slower but more specific. Change this one line to switch.
+const SEND_MODEL = 'haiku'
+
 const SYSTEM =
   'You suggest what a user might ask a coding assistant to do next. Reply with only a JSON array ' +
-  `of up to ${MAX} objects, each {"label": string, "prompt": string}. ` +
+  `of up to ${MAX} objects, each {"label": string}. ` +
   '"label" is the button text: imperative, at most 10 words, specific to this conversation. ' +
-  '"prompt" is what gets sent to the assistant when the user picks it: a clear, complete request ' +
-  'in 2 to 4 sentences, written as the user, naming the relevant files, features or goals from the ' +
-  'conversation and saying what "done" looks like. Make the suggestions distinct from each other. ' +
+  'Make the suggestions distinct from each other. ' +
   'If nothing useful follows, reply [].'
 
 const clip = (s: string, max: number) => (s.length > max ? s.slice(0, max) + '…' : s)
@@ -60,68 +62,267 @@ function parseList(text: string): Suggestion[] {
   }
 }
 
+// ---------- cache: reuse a model reply when the exact same request repeats ----------
+
+type CacheEntry = { text: string; at: number }
+
+// A small LRU with expiry. The key is the whole request (model, instructions, the full
+// prompt with its context, limits), so any change in context is a different key and a
+// stale reply can never come back.
+function makeCache(limit: number, ttlMs: number, now: () => number = () => Date.now()) {
+  const entries = new Map<string, CacheEntry>()
+  return {
+    get(key: string): string | undefined {
+      const hit = entries.get(key)
+      if (!hit) return undefined
+      if (now() - hit.at > ttlMs) {
+        entries.delete(key)
+        return undefined
+      }
+      entries.delete(key) // refresh its place as most recently used
+      entries.set(key, hit)
+      return hit.text
+    },
+    set(key: string, text: string) {
+      entries.delete(key)
+      entries.set(key, { text, at: now() })
+      while (entries.size > limit) entries.delete(entries.keys().next().value as string)
+    },
+    get size() {
+      return entries.size
+    },
+  }
+}
+
+type CompleteRequest = {
+  model: string
+  system: string
+  prompt: string
+  maxTokens: number
+  effort: 'low'
+  timeoutMs: number
+}
+
+// 40 replies, kept 30 minutes. Lives in memory: a reload starts it empty.
+const replyCache = makeCache(40, 30 * 60_000)
+const cacheStats = { hits: 0, modelCalls: 0 }
+
+const cacheKey = (r: CompleteRequest) =>
+  JSON.stringify([r.model, r.system, r.prompt, r.maxTokens, r.effort])
+
+// Answers from the cache when the identical request was answered before; otherwise asks
+// the model and keeps a good answer. Only answered replies are cached, never errors.
+async function completeCached($: EngineInterface, req: CompleteRequest): Promise<string | undefined> {
+  const key = cacheKey(req)
+  const cached = replyCache.get(key)
+  if (cached !== undefined) {
+    cacheStats.hits++
+    return cached
+  }
+  cacheStats.modelCalls++
+  const r = await $.model.complete(req)
+  if (!r.isAnswered || !r.text.trim()) return undefined
+  replyCache.set(key, r.text)
+  return r.text
+}
+
 async function suggest($: EngineInterface, answer: string) {
-  const asked = await read($, lastPrompt)
-  await update($, lastAnswer, () => answer)
-  await update($, loading, () => true)
-  const r = await $.model.complete({
+  const [asked] = await Promise.all([
+    read($, lastPrompt),
+    update($, lastAnswer, () => answer),
+    update($, loading, () => true),
+  ])
+  // Labels only (the full prompt is written at Send), at low effort: a short, fast reply.
+  const reply = await completeCached($, {
     model: 'haiku',
     system: SYSTEM,
     prompt: `User asked:\n${clip(asked, 3000)}\n\nAssistant replied:\n${clip(answer, 6000)}\n\nNext steps (JSON array):`,
-    maxTokens: 1500,
-    timeoutMs: 20000,
+    maxTokens: 350,
+    effort: 'low',
+    timeoutMs: 15000,
   })
-  await update($, suggestions, () => (r.isAnswered ? parseList(r.text) : []))
-  await update($, selected, () => [])
-  await update($, loading, () => false)
+  await Promise.all([
+    update($, suggestions, () => (reply ? parseList(reply) : [])),
+    update($, selected, () => []),
+    update($, loading, () => false),
+  ])
 }
 
 async function toggle($: EngineInterface, i: number) {
   await update($, selected, l => (l.includes(i) ? l.filter(x => x !== i) : [...l, i].sort((a, b) => a - b)))
 }
 
-// Sends the ticked steps as one well-written prompt, composed by Sonnet with the
-// conversation as context; falls back to Haiku's quick drafts if that fails.
+// Sends the ticked steps as one well-written prompt, composed by SEND_MODEL with the
+// conversation as context; falls back to the plain labels if that fails.
 async function sendSelected($: EngineInterface) {
-  const list = await read($, suggestions)
-  const picked = (await read($, selected)).map(i => list[i]).filter(Boolean)
-  if (picked.length === 0 || (await read($, composing))) return
+  const [list, ticked, busy, asked, answer] = await Promise.all([
+    read($, suggestions),
+    read($, selected),
+    read($, composing),
+    read($, lastPrompt),
+    read($, lastAnswer),
+  ])
+  const picked = ticked.map(i => list[i]).filter(Boolean)
+  if (picked.length === 0 || busy) return
+  // Fallback if the writer fails: the labels as a plain list.
   let text =
     picked.length === 1
-      ? picked[0].prompt
-      : 'Please do the following, in this order:\n\n' +
-        picked.map((s, i) => `${i + 1}. ${s.label}\n${s.prompt}`).join('\n\n')
+      ? picked[0].label
+      : 'Please do the following, in this order:\n' + picked.map((s, i) => `${i + 1}. ${s.label}`).join('\n')
   await update($, composing, () => true)
   try {
-    const steps = picked.map((s, i) => `${i + 1}. ${s.label}: ${s.prompt}`).join('\n')
-    const r = await $.model.complete({
-      model: 'sonnet',
+    const steps = picked.map((s, i) => `${i + 1}. ${s.label}`).join('\n')
+    const reply = await completeCached($, {
+      model: SEND_MODEL,
       system: COMPOSE_SYSTEM,
       prompt:
-        `User's last request:\n${clip(await read($, lastPrompt), 6000)}\n\n` +
-        `Assistant's last answer:\n${clip(await read($, lastAnswer), 16000)}\n\n` +
+        `User's last request:\n${clip(asked, 4000)}\n\n` +
+        `Assistant's last answer:\n${clip(answer, 10000)}\n\n` +
         `Next steps the user picked, in order:\n${steps}\n\nThe message:`,
-      maxTokens: 1200,
-      timeoutMs: 30000,
+      maxTokens: 900,
+      effort: 'low',
+      timeoutMs: 25000,
     })
-    if (r.isAnswered && r.text.trim()) text = r.text.trim()
+    if (reply) text = reply.trim()
   } catch {
-    // keep the draft
+    // keep the fallback
   }
-  await update($, composing, () => false)
-  await update($, suggestions, () => [])
-  await update($, selected, () => [])
+  await Promise.all([
+    update($, composing, () => false),
+    update($, suggestions, () => []),
+    update($, selected, () => []),
+  ])
   await $.prompt.submit({ text, asUser: true })
 }
 
+
+// ---------- /mod-bench: timing measurements, run on demand ----------
+
+// Scratch values the storage benchmark writes, so it never touches real state.
+const benchA = atom({ plugin: 'next-steps', key: 'benchA' } as const, 0)
+const benchB = atom({ plugin: 'next-steps', key: 'benchB' } as const, 0)
+const benchC = atom({ plugin: 'next-steps', key: 'benchC' } as const, 0)
+
+// The module's own clock: no round-trip to the host, so short timings stay honest.
+const tick = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
+
+// How long each real message waited inside this mod before going out, newest last.
+const submitWaits: number[] = []
+
+type Stat = { runs: number; min: number; median: number; mean: number; max: number }
+function stat(xs: number[]): Stat {
+  const a = [...xs].sort((x, y) => x - y)
+  const r = (n: number) => Math.round(n * 100) / 100
+  return {
+    runs: a.length,
+    min: r(a[0] ?? 0),
+    median: r(a[Math.floor((a.length - 1) / 2)] ?? 0),
+    mean: r(a.reduce((x, y) => x + y, 0) / (a.length || 1)),
+    max: r(a[a.length - 1] ?? 0),
+  }
+}
+
+async function timeIt(n: number, fn: () => Promise<unknown>): Promise<Stat> {
+  const xs: number[] = []
+  for (let i = 0; i < n; i++) {
+    const t0 = tick()
+    await fn()
+    xs.push(tick() - t0)
+  }
+  return stat(xs)
+}
+
+async function runBench($: EngineInterface): Promise<string> {
+  const N = 20
+  const bump = (n: number) => n + 1
+  const writesSequential = await timeIt(N, async () => {
+    await update($, benchA, bump)
+    await update($, benchB, bump)
+    await update($, benchC, bump)
+  })
+  const writesBatched = await timeIt(N, () =>
+    Promise.all([update($, benchA, bump), update($, benchB, bump), update($, benchC, bump)]),
+  )
+  const readsSequential = await timeIt(N, async () => {
+    await read($, suggestions)
+    await read($, selected)
+    await read($, composing)
+    await read($, loading)
+  })
+  const readsBatched = await timeIt(N, () =>
+    Promise.all([read($, suggestions), read($, selected), read($, composing), read($, loading)]),
+  )
+
+  // Model calls on the current conversation: labels, then Send written by each model.
+  const [asked, answer, list] = await Promise.all([read($, lastPrompt), read($, lastAnswer), read($, suggestions)])
+  const labels = list.filter(x => x && typeof x === 'object' && x.label).slice(0, 2).map(x => x.label)
+  const steps = (labels.length ? labels : ['Summarize what changed in this session'])
+    .map((l, i) => `${i + 1}. ${l}`)
+    .join('\n')
+  const composeInput =
+    `User's last request:\n${clip(asked, 4000)}\n\n` +
+    `Assistant's last answer:\n${clip(answer, 10000)}\n\n` +
+    `Next steps the user picked, in order:\n${steps}\n\nThe message:`
+  const timed = async (model: string, system: string, prompt: string, maxTokens: number) => {
+    const t0 = tick()
+    const r = await $.model.complete({ model, system, prompt, maxTokens, effort: 'low', timeoutMs: 60000 })
+    return {
+      model,
+      ms: Math.round(tick() - t0),
+      outputTokens: r.usage.output_tokens,
+      text: r.isAnswered ? r.text : `(no reply: ${r.reason})`,
+    }
+  }
+  const labelsCall = await timed(
+    'haiku',
+    SYSTEM,
+    `User asked:\n${clip(asked, 3000)}\n\nAssistant replied:\n${clip(answer, 6000)}\n\nNext steps (JSON array):`,
+    350,
+  )
+  const sendHaiku = await timed('haiku', COMPOSE_SYSTEM, composeInput, 900)
+  const sendSonnet = await timed('sonnet', COMPOSE_SYSTEM, composeInput, 900)
+
+  const result = {
+    measuredAt: new Date().toISOString(),
+    storage: { writesSequential, writesBatched, readsSequential, readsBatched },
+    realMessagesWaitedInMod: stat(submitWaits),
+    cache: { entries: replyCache.size, hits: cacheStats.hits, modelCalls: cacheStats.modelCalls },
+    models: { labels: labelsCall, sendHaiku, sendSonnet },
+    stepsUsed: steps,
+  }
+  await $.fs.write(`${$.plugin.root}/bench.json`, JSON.stringify(result, null, 2))
+  const ms = (x: Stat) => `${x.median} ms median`
+  return [
+    'mod-bench done (full results in next-steps/bench.json):',
+    `  3 writes, one at a time: ${ms(writesSequential)}  ·  batched: ${ms(writesBatched)}`,
+    `  4 reads, one at a time: ${ms(readsSequential)}  ·  batched: ${ms(readsBatched)}`,
+    `  cache: ${cacheStats.hits} hits, ${cacheStats.modelCalls} model calls, ${replyCache.size} entries`,
+    `  Haiku labels: ${labelsCall.ms} ms  ·  Send with Haiku: ${sendHaiku.ms} ms  ·  Send with Sonnet: ${sendSonnet.ms} ms`,
+  ].join('\n')
+}
+
 export const register: Register = on => {
+  on('session.start', async ($, e, next) => {
+    const result = await next(e)
+    await $.command.register({ name: 'mod-bench', description: 'Time next-steps storage and model calls' })
+    return result
+  })
+
+  on('command.run', { command: 'mod-bench' }, async $ => ({ text: await runBench($) }))
+
   on('prompt.submit', async ($, e, next) => {
+    const t0 = tick()
     // A new request makes the old suggestions stale.
     if (!e.turnId) {
-      await update($, lastPrompt, () => e.text)
-      await update($, suggestions, () => [])
-      await update($, selected, () => [])
+      // In the background: the message goes out without waiting on these.
+      void Promise.all([
+        update($, lastPrompt, () => e.text),
+        update($, suggestions, () => []),
+        update($, selected, () => []),
+      ])
     }
+    submitWaits.push(tick() - t0)
+    if (submitWaits.length > 50) submitWaits.shift()
     return next(e)
   })
 
@@ -137,16 +338,20 @@ export const register: Register = on => {
     const inner = await next(e)
     if (e.props.hasSurvey) return inner
     // Skip anything saved in an older format (plain strings) before a reload.
-    const list = (await read($, suggestions)).filter(x => x && typeof x === 'object' && x.label)
-    const picked = await read($, selected)
-    const isComposing = await read($, composing)
+    const [saved, picked, isComposing, isLoading] = await Promise.all([
+      read($, suggestions),
+      read($, selected),
+      read($, composing),
+      read($, loading),
+    ])
+    const list = saved.filter(x => x && typeof x === 'object' && x.label)
     const { Box, Text, Button } = $.ui.resolve(e)
 
     if (e.props.isWorking || list.length === 0) {
       // Placeholder, so the spot never looks broken or empty.
       const hint = e.props.isWorking
         ? 'Next steps appear when Claude finishes'
-        : (await read($, loading))
+        : isLoading
           ? 'Finding next steps…'
           : 'No next steps yet'
       return (
@@ -170,7 +375,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="row" alignItems="center" gap={1}>
         <Box flexDirection="column" alignItems="flex-start" gap={1}>
-          <Box flexDirection="row" alignItems="flex-start" gap={1}>
+          <Box flexDirection="row" alignItems="flex-start" columnGap={3}>
             <Box flexDirection="column" alignItems="flex-start" gap={1}>
               {list.slice(0, half).map((s, i) => item(s, i))}
             </Box>
@@ -178,18 +383,27 @@ export const register: Register = on => {
               {list.slice(half).map((s, i) => item(s, i + half))}
             </Box>
           </Box>
-          {isComposing ? (
-            <Text dimColor>Writing prompt…</Text>
-          ) : picked.length > 0 ? (
-            <Button
-              key="send"
-              label={picked.length === 1 ? 'Send' : `Send ${picked.length}`}
-              variant="primary"
-              onPress={() => sendSelected($)}
-            />
-          ) : (
-            <Text dimColor>Tick one or more, then Send</Text>
-          )}
+          {/* Footer: what is ticked, a way to undo it, and the action, side by side. */}
+          <Box flexDirection="row" alignItems="center" gap={1}>
+            {isComposing ? (
+              <Text dimColor>Writing prompt…</Text>
+            ) : picked.length > 0 ? (
+              <Box flexDirection="row" alignItems="center" gap={1}>
+                <Button
+                  key="send"
+                  label={picked.length === 1 ? 'Send' : `Send ${picked.length}`}
+                  variant="primary"
+                  onPress={() => sendSelected($)}
+                />
+                <Button key="clear" label="Clear" dimColor onPress={() => update($, selected, () => [])} />
+                <Text dimColor>
+                  {picked.length} of {list.length} selected
+                </Text>
+              </Box>
+            ) : (
+              <Text dimColor>Tick one or more, then Send</Text>
+            )}
+          </Box>
         </Box>
         <Box flexGrow={1}>{inner}</Box>
       </Box>

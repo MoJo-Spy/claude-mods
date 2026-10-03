@@ -40,7 +40,8 @@ Not sure what to ask next? After every reply, `next-steps` shows **up to 6 sugge
 - **Send writes a proper prompt, not a one-liner:** it names the files, commands and values from your conversation, adds the context Claude needs and says what done looks like. Several steps become a numbered plan.
 - Labels are short (10 words or fewer) and specific to what you just asked and what Claude answered
 - They hide while Claude is working and refresh after each reply; typing your own message clears them
-- Uses one small Haiku request per reply for the labels, and one Sonnet request when you press Send
+- Fast: Haiku writes the labels and the Send prompt (set `SEND_MODEL` to `'sonnet'` in `hooks/register.tsx` for more detail), and identical requests are cached for 30 minutes so a repeat costs nothing
+- `/mod-bench` times the mod's storage and model calls and writes the results to `bench.json`
 
 ## Requirements
 
@@ -75,7 +76,7 @@ claude plugin update next-steps@my-claude-mods
 Mods run with your permissions, so here is exactly what each one does. Check it yourself with `claude plugin validate ./plugins/<mod>`.
 
 - **usage-band** reads your session's usage figures (`$.session.usage`), checks whether the folder is a git repo (`git rev-parse`), runs a one-line script that presses Ctrl+N when you click **＋**, and submits a commit-and-push request to Claude when you click **↑**. Nothing is sent anywhere else.
-- **next-steps** sends your last request and Claude's last answer (trimmed) through your own Claude Code session (`$.model.complete`): to Haiku to write the suggestions, and to Sonnet when you press Send to write the message, which it then submits as yours. Nothing is sent anywhere else.
+- **next-steps** sends your last request and Claude's last answer (trimmed) through your own Claude Code session (`$.model.complete`): to Haiku to write the suggestions and, when you press Send, the message it then submits as yours. `/mod-bench` writes timing results to a local `bench.json` file. Nothing is sent anywhere else.
 
 ## FAQ
 

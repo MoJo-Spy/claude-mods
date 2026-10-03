@@ -1,7 +1,7 @@
 {
   "name": "usage-band",
   "displayName": "Usage Band: 5-hour & weekly limits",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Always-visible Claude Code usage limits: 5-hour and weekly percentage with reset countdown, plus one-click new chat and push buttons. A Claude Code mod for the Desktop app and terminal.",
   "author": {
     "name": "Pawandeep"

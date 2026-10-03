@@ -10,6 +10,9 @@ declare module 'claude-code' {
       loading: boolean
       composing: boolean
       selected: number[]
+      benchA: number
+      benchB: number
+      benchC: number
     }
   }
 }
