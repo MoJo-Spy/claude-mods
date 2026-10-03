@@ -36,12 +36,23 @@ const SEND_MODEL = 'haiku'
 const SYSTEM =
   'You suggest what a user might ask a coding assistant to do next. Reply with only a JSON array ' +
   `of up to ${MAX} objects, each {"label": string}. ` +
-  '"label" is the button text: imperative, at most 10 words, specific to this conversation. ' +
+  '"label" is the button text: imperative, at most 5 words and under 30 characters, specific to this conversation. ' +
   'Make the suggestions distinct from each other. ' +
   'If nothing useful follows, reply [].'
 
 const clip = (s: string, max: number) => (s.length > max ? s.slice(0, max) + '…' : s)
 const words = (s: string, max: number) => s.split(/\s+/).slice(0, max).join(' ')
+
+// Button labels must stay short or the band overflows: at most 30 characters, cut at
+// a word boundary with an ellipsis.
+const LABEL_CHARS = 30
+function shortLabel(s: string): string {
+  const w = s.replace(/\s+/g, ' ').trim()
+  if (w.length <= LABEL_CHARS) return w
+  const cut = w.slice(0, LABEL_CHARS - 1)
+  const space = cut.lastIndexOf(' ')
+  return (space > 12 ? cut.slice(0, space) : cut).replace(/[\s,.;:-]+$/, '') + '…'
+}
 
 function parseList(text: string): Suggestion[] {
   const m = text.match(/\[[\s\S]*\]/)
@@ -52,7 +63,7 @@ function parseList(text: string): Suggestion[] {
     return list
       .filter(x => x && typeof x.label === 'string' && x.label.trim() !== '')
       .map(x => {
-        const label = words(x.label.trim(), 10)
+        const label = shortLabel(x.label.trim())
         const prompt = typeof x.prompt === 'string' && x.prompt.trim() !== '' ? x.prompt.trim() : label
         return { label, prompt }
       })
@@ -374,8 +385,9 @@ export const register: Register = on => {
     const half = Math.ceil(list.length / 2)
     return (
       <Box flexDirection="row" alignItems="center" gap={1}>
-        <Box flexDirection="column" alignItems="flex-start" gap={1}>
-          <Box flexDirection="row" alignItems="flex-start" columnGap={3}>
+        {/* Shrinks and clips if ever too wide, so the right side is never pushed off. */}
+        <Box flexDirection="column" alignItems="flex-start" gap={1} flexShrink={1} minWidth={0} overflow="hidden">
+          <Box flexDirection="row" alignItems="flex-start" columnGap={2}>
             <Box flexDirection="column" alignItems="flex-start" gap={1}>
               {list.slice(0, half).map((s, i) => item(s, i))}
             </Box>
@@ -405,7 +417,7 @@ export const register: Register = on => {
             )}
           </Box>
         </Box>
-        <Box flexGrow={1}>{inner}</Box>
+        <Box flexGrow={1} flexShrink={0}>{inner}</Box>
       </Box>
     )
   })

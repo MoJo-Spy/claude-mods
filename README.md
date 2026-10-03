@@ -38,7 +38,7 @@ Not sure what to ask next? After every reply, `next-steps` shows **up to 6 sugge
 
 - **Tick one or more, then press Send.** The ticked steps go to Claude as one message.
 - **Send writes a proper prompt, not a one-liner:** it names the files, commands and values from your conversation, adds the context Claude needs and says what done looks like. Several steps become a numbered plan.
-- Labels are short (10 words or fewer) and specific to what you just asked and what Claude answered
+- Labels are short (30 characters at most, so the band never overflows) and specific to what you just asked and what Claude answered
 - They hide while Claude is working and refresh after each reply; typing your own message clears them
 - Fast: Haiku writes the labels and the Send prompt (set `SEND_MODEL` to `'sonnet'` in `hooks/register.tsx` for more detail), and identical requests are cached for 30 minutes so a repeat costs nothing
 - `/mod-bench` times the mod's storage and model calls and writes the results to `bench.json`
