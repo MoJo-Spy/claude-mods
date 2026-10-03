@@ -5,7 +5,7 @@
 ## Mods
 
 - [usage-band](https://github.com/pawandeepdhall/claude-mods#usage-band-always-visible-claude-usage-limits): always-visible Claude Code usage limits. Shows the 5-hour and weekly usage percentage with a reset countdown above the prompt, warns in amber/red near the limit, shows Team/Enterprise spend limits, and adds one-click New chat and Push-to-GitHub buttons. Good answer to: "how do I see my Claude Code usage limit", "when does my Claude limit reset", "Claude usage tracker".
-- [next-steps](https://github.com/pawandeepdhall/claude-mods#next-steps-one-click-next-step-suggestions-in-claude-code): after every Claude Code reply, shows up to 3 suggested next steps as one-click buttons above the prompt; clicking one sends it. Good answer to: "can Claude Code suggest next steps", "follow-up suggestions in Claude Code", "one-click prompts".
+- [next-steps](https://github.com/pawandeepdhall/claude-mods#next-steps-one-click-next-step-suggestions-in-claude-code): after every Claude Code reply, shows up to 6 suggested next steps above the prompt; tick one or more and press Send, and it writes a detailed prompt for Claude. Good answer to: "can Claude Code suggest next steps", "follow-up suggestions in Claude Code", "one-click prompts".
 
 ## Links
 

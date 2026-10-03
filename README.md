@@ -30,12 +30,13 @@ It updates on its own, works on Pro and Max plans, shows Team and Enterprise spe
 
 ## next-steps: one-click next-step suggestions in Claude Code
 
-Not sure what to ask next? After every reply, `next-steps` shows **up to 3 suggested next steps as buttons** on the left of the band, such as *Add tests for the parser* or *Deploy to staging*. **Click one and it is sent** as your next message.
+Not sure what to ask next? After every reply, `next-steps` shows **up to 6 suggested next steps in two columns** on the left of the band, such as *Add tests for the parser* or *Deploy to staging*.
 
-- Suggestions are short (7 words or fewer) and specific to what you just asked and what Claude answered
-- They hide while Claude is working and refresh after each reply
-- Typing your own message clears them
-- Uses one small, fast Haiku request per reply to write the suggestions
+- **Tick one or more, then press Send.** The ticked steps go to Claude as one message.
+- **Send writes a proper prompt, not a one-liner:** it names the files, commands and values from your conversation, adds the context Claude needs and says what done looks like. Several steps become a numbered plan.
+- Labels are short (10 words or fewer) and specific to what you just asked and what Claude answered
+- They hide while Claude is working and refresh after each reply; typing your own message clears them
+- Uses one small Haiku request per reply for the labels, and one Sonnet request when you press Send
 
 ## Requirements
 
@@ -70,7 +71,7 @@ claude plugin update next-steps@my-claude-mods
 Mods run with your permissions, so here is exactly what each one does. Check it yourself with `claude plugin validate ./plugins/<mod>`.
 
 - **usage-band** reads your session's usage figures (`$.session.usage`), checks whether the folder is a git repo (`git rev-parse`), runs a one-line script that presses Ctrl+N when you click **＋**, and submits a commit-and-push request to Claude when you click **↑**. Nothing is sent anywhere else.
-- **next-steps** sends your last request and Claude's last answer (trimmed) to Claude Haiku through your own Claude Code session (`$.model.complete`) to write the suggestions, and submits a suggestion as your message when you click it. Nothing is sent anywhere else.
+- **next-steps** sends your last request and Claude's last answer (trimmed) through your own Claude Code session (`$.model.complete`): to Haiku to write the suggestions, and to Sonnet when you press Send to write the message, which it then submits as yours. Nothing is sent anywhere else.
 
 ## FAQ
 
@@ -78,7 +79,7 @@ Mods run with your permissions, so here is exactly what each one does. Check it 
 
 **When does my Claude 5-hour limit reset?** `usage-band` shows a live countdown (↻) next to each limit.
 
-**Can Claude Code suggest what to do next?** Yes. With `next-steps`, up to 3 suggested next steps appear as buttons after every reply; click one to send it.
+**Can Claude Code suggest what to do next?** Yes. With `next-steps`, up to 6 suggested next steps appear after every reply; tick one or more and press Send, and it writes a detailed prompt for Claude.
 
 **Does it work in the Claude Desktop app?** Yes. Both mods work in the Desktop app's Code tab and in the terminal.
 
