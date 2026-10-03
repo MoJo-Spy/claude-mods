@@ -4,6 +4,10 @@
 
 Website: **https://pawandeepdhall.github.io/claude-mods/**
 
+[![Watch the 37-second demo of usage-band and next-steps, with voice-over](docs/demo-poster.jpg)](https://pawandeepdhall.github.io/claude-mods/#demo)
+
+▶ **[Watch the 37-second demo](https://pawandeepdhall.github.io/claude-mods/#demo)** (with voice-over)
+
 ![Claude Code usage limits mod: 5-hour and weekly usage percentage with reset countdown above the prompt](docs/usage-band.png)
 
 Install in 30 seconds:
