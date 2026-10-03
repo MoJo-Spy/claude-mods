@@ -60,9 +60,18 @@ export const register: Register = on => {
     const inner = await next(e)
     if (e.props.hasSurvey) return inner
     const queue = await read($, items)
-    if (queue.length === 0) return inner
+    if (queue.length === 0 && !e.props.isWorking) return inner
 
     const { Box, Text, Button } = $.ui.resolve(e)
+    if (queue.length === 0) {
+      // While Claude works, a quiet reminder that typing now queues.
+      return (
+        <Box flexDirection="row" gap={2}>
+          <Text dimColor>Up next · empty: type to queue (now: to interrupt)</Text>
+          <Box flexGrow={1}>{inner}</Box>
+        </Box>
+      )
+    }
     const isPaused = await read($, paused)
     const shown = queue.slice(0, 3)
     const remove = (id: number) => update($, items, q => q.filter(p => p.id !== id))
