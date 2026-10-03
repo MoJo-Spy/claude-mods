@@ -60,7 +60,10 @@ export const register: Register = on => {
     const inner = await next(e)
     if (e.props.hasSurvey) return inner
     const queue = await read($, items)
-    if (queue.length === 0 && !e.props.isWorking) return inner
+    // The Desktop app keeps its own queue (faded bubbles with Send now / ✕)
+    // and holds those messages before they reach mods, so the hint would only
+    // mislead there. Show it in the terminal alone.
+    if (queue.length === 0 && (!e.props.isWorking || e.surface !== 'terminal')) return inner
 
     const { Box, Text, Button } = $.ui.resolve(e)
     if (queue.length === 0) {
