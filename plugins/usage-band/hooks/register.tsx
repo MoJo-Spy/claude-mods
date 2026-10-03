@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
 import type { Limit } from '../types'
 
@@ -8,6 +8,21 @@ const now = atom({ plugin: 'usage-band', key: 'now' } as const, 0)
 // True once the engine has measured the session: an account with no limits
 // (an API key) then shows nothing rather than a waiting message.
 const measured = atom({ plugin: 'usage-band', key: 'measured' } as const, false)
+
+// ---------- new chat button ----------
+
+// A mod can't open a Desktop chat itself, so the button presses the app's own
+// shortcut for you: Ctrl+N on Windows (a one-line script that starts in a blink,
+// unlike PowerShell), Cmd+N on macOS. The click just put Claude in front.
+const SEND_CMD_N = 'tell application "System Events" to keystroke "n" using command down'
+
+async function pressNewChat($: EngineInterface) {
+  try {
+    await $.process.run(['wscript.exe', '//B', '//Nologo', `${$.plugin.root}/bin/new-chat.vbs`])
+  } catch {
+    await $.process.run(['osascript', '-e', SEND_CMD_N]).catch(() => undefined)
+  }
+}
 
 type Window = { label: string; short: string; ms: number }
 const WINDOWS: Record<string, Window> = {
@@ -73,68 +88,51 @@ const paceText = (r: Row) =>
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-// Compact: one hairline row per window, stacked, about a quarter of the band.
-// A hairline divider on the left, then the rows.
-const SEP_GAP = 16
-const CONTENT_W = 228
-const SVG_W = SEP_GAP + CONTENT_W
-const ROW_H = 15
+// Compact: one row per window, stacked. Set in the app's own UI font with
+// tabular figures, so it matches the band's text; 12px everywhere around it.
+const SEP_GAP = 12
+const CONTENT_W = 116
+const SVG_W = SEP_GAP + CONTENT_W + SEP_GAP
+const ROW_H = 17
 const svgHeight = (n: number) => n * ROW_H
 
 const svgCard = (rows: Row[]) => {
-  const BAR_X = 22
-  const BAR_END = 124
-  const PCT_END = 158
+  const PCT_END = 54
   const cells = rows
     .map((r, i) => {
-      const base = i * ROW_H + 11
-      const mid = base - 3.5
-      const used = BAR_X + Math.max(0, Math.min(1, r.pct / 100)) * (BAR_END - BAR_X)
-      const tickX = r.elapsed === undefined ? undefined : (BAR_X + r.elapsed * (BAR_END - BAR_X)).toFixed(1)
+      const base = i * ROW_H + 13
       return `
   <text class="label" x="0" y="${base}">${esc(r.short)}</text>
-  <line class="track" x1="${BAR_X}" x2="${BAR_END}" y1="${mid}" y2="${mid}"/>
-  <line class="used ${r.level}" x1="${BAR_X}" x2="${used.toFixed(1)}" y1="${mid}" y2="${mid}"/>
-  ${tickX === undefined ? '' : `<line class="tick" x1="${tickX}" x2="${tickX}" y1="${mid - 3.5}" y2="${mid + 3.5}"/>`}
-  <text class="pct ${r.level}" x="${PCT_END}" y="${base}" text-anchor="end">${Math.round(r.pct)}%</text>
-  <text class="meta" x="${CONTENT_W}" y="${base}" text-anchor="end">${esc(r.resetShort)}</text>`
+  <text class="pct ${r.level}" x="${PCT_END}" y="${base}" text-anchor="end">${Math.round(r.pct)}<tspan class="unit">%</tspan></text>
+  <text class="meta" x="${CONTENT_W}" y="${base}" text-anchor="end">${r.resetShort ? '↻ ' + esc(r.resetShort) : ''}</text>`
     })
     .join('')
   const H = svgHeight(rows.length)
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SVG_W} ${H}" width="${SVG_W}" height="${H}">
   <style>
-    svg { --fg:#3d3d3a; --muted:#8a8985; --track:rgba(0,0,0,.14); --warn:#b7791f; --hot:#c4483e;
-          font-family: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace; }
+    svg { --fg:#3d3d3a; --muted:#8a8985; --track:rgba(0,0,0,.12); --warn:#b7791f; --hot:#c4483e;
+          font-family: system-ui, "Segoe UI", -apple-system, sans-serif; font-variant-numeric: tabular-nums; }
     @media (prefers-color-scheme: dark) {
-      svg { --fg:#d4d3cf; --muted:#8f8e8a; --track:rgba(255,255,255,.16); --warn:#e0a84a; --hot:#e8766c; }
+      svg { --fg:#d4d3cf; --muted:#8f8e8a; --track:rgba(255,255,255,.14); --warn:#e0a84a; --hot:#e8766c; }
     }
-    text { font-size:10px; fill:var(--muted); }
-    .label { letter-spacing:.04em; }
-    .pct { fill:var(--fg); }
+    text { fill:var(--muted); }
+    .label { font-size:10px; font-weight:600; letter-spacing:.08em; }
+    .pct { font-size:12.5px; font-weight:600; fill:var(--fg); }
+    .unit { font-size:10px; font-weight:500; }
     .pct.warn { fill:var(--warn); } .pct.hot { fill:var(--hot); }
-    line { stroke-linecap:round; }
-    .track { stroke:var(--track); stroke-width:1; }
-    .used { stroke:var(--fg); stroke-width:1.75; opacity:.75; }
-    .used.warn { stroke:var(--warn); opacity:1; } .used.hot { stroke:var(--hot); opacity:1; }
-    .tick { stroke:var(--fg); stroke-width:1.25; opacity:.65; }
+    .meta { font-size:11px; }
     .sep { stroke:var(--track); stroke-width:1; }
   </style>
   <line class="sep" x1="0.5" x2="0.5" y1="1" y2="${H - 1}"/>
+  <line class="sep" x1="${SVG_W - 0.5}" x2="${SVG_W - 0.5}" y1="1" y2="${H - 1}"/>
   <g transform="translate(${SEP_GAP},0)">${cells}</g>
 </svg>`
 }
 
-// ---------- terminal: text bars ----------
+// ---------- terminal: plain text ----------
 
 const COLORS = { ok: 'green', warn: 'yellow', hot: 'red' } as const
 
-const textBar = (r: Row, width = 10) => {
-  const filled = Math.round(Math.max(0, Math.min(1, r.pct / 100)) * width)
-  const paceAt = r.elapsed === undefined ? -1 : Math.min(width - 1, Math.floor(r.elapsed * width))
-  let s = ''
-  for (let i = 0; i < width; i++) s += i === paceAt ? '┃' : i < filled ? '━' : '─'
-  return s
-}
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -164,17 +162,29 @@ export const register: Register = on => {
     if (e.props.hasSurvey) return inner
 
     const els = $.ui.resolve(e) as Record<string, any>
-    const { Box, Text } = els
+    const { Box, Text, Button } = els
+    const newChatButton = (
+      // The app draws its own buttons; "primary" is its accent (Claude orange) style.
+      <Button key="new-chat" label="+" variant="primary" onPress={() => pressNewChat($)} />
+    )
     const at = (await read($, now)) || (await $.clock.now())
     const rows = (await read($, limits)).map(l => toRow(l, at))
 
     if (rows.length === 0) {
       // No limits on this account (e.g. an API key): stay out of the way.
-      if (await read($, measured)) return inner
+      if (await read($, measured)) {
+        return (
+          <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1}>
+            <Box flexGrow={1}>{inner}</Box>
+            {newChatButton}
+          </Box>
+        )
+      }
       return (
-        <Box flexDirection="row" flexGrow={1}>
+        <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1}>
           <Box flexGrow={1}>{inner}</Box>
           <Text dimColor>usage: waiting for first reply</Text>
+          {newChatButton}
         </Box>
       )
     }
@@ -185,10 +195,11 @@ export const register: Register = on => {
         .map(r => [`${r.label} ${r.pct}% used`, r.resetIn, paceText(r)].filter(Boolean).join(', '))
         .join('; ')
       return (
-        <Box flexDirection="row" alignItems="center" flexGrow={1}>
+        <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1}>
           {/* left side: other mods in the band */}
           <Box flexGrow={1}>{inner}</Box>
           <Svg source={svgCard(rows)} alt={alt} width={SVG_W} height={svgHeight(rows.length)} />
+          {newChatButton}
         </Box>
       )
     }
@@ -199,13 +210,12 @@ export const register: Register = on => {
         {rows.map(r => (
           <Box key={r.kind} flexDirection="row">
             <Text dimColor>{r.short} </Text>
-            <Text color={r.level === 'ok' ? undefined : COLORS[r.level]} dimColor={r.level === 'ok'}>
-              {textBar(r)}
-            </Text>
-            <Text color={r.level === 'ok' ? undefined : COLORS[r.level]}> {Math.round(r.pct)}%</Text>
+            <Text color={r.level === 'ok' ? undefined : COLORS[r.level]}>{Math.round(r.pct)}%</Text>
             <Text dimColor> {r.resetShort}</Text>
           </Box>
         ))}
+        <Text dimColor>│</Text>
+        {newChatButton}
       </Box>
     )
   })

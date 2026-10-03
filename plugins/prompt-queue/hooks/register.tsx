@@ -6,7 +6,6 @@ import type { QueuedPrompt } from '../types'
 const items = atom({ plugin: 'prompt-queue', key: 'items' } as const, [] as QueuedPrompt[])
 // Set when a turn was stopped or failed: the queue waits for Resume.
 const paused = atom({ plugin: 'prompt-queue', key: 'paused' } as const, false)
-const nextId = atom({ plugin: 'prompt-queue', key: 'nextId' } as const, 1)
 // The main loop's running turn, '' when idle: what Send now stops.
 const turnId = atom({ plugin: 'prompt-queue', key: 'turnId' } as const, '')
 
@@ -64,10 +63,10 @@ export const register: Register = on => {
     if (!e.turnId || !PERSON.has(e.origin.kind) || e.attachments?.length) return next(e)
     if (NOW_PREFIX.test(e.text)) return next({ ...e, text: e.text.replace(NOW_PREFIX, '') })
 
-    const id = await read($, nextId)
-    await update($, nextId, n => n + 1)
-    await update($, items, q => [...q, { id, text: e.text }])
+    // One write, not awaited, so the hold is instant and the list redraws at once.
     // Answering without next holds the prompt quietly: it never reaches Claude.
+    const id = Date.now() + Math.random()
+    void update($, items, q => [...q, { id, text: e.text }])
     return { text: e.text }
   })
 
