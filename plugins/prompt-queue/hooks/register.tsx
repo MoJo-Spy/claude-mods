@@ -7,11 +7,17 @@ const items = atom({ plugin: 'prompt-queue', key: 'items' } as const, [] as Queu
 // Set when a turn was stopped or failed: the queue waits for Resume.
 const paused = atom({ plugin: 'prompt-queue', key: 'paused' } as const, false)
 const nextId = atom({ plugin: 'prompt-queue', key: 'nextId' } as const, 1)
+// The main loop's running turn, '' when idle: what Send now stops.
+const turnId = atom({ plugin: 'prompt-queue', key: 'turnId' } as const, '')
 
 // Start a prompt with this to send it into the running turn right away.
 const NOW_PREFIX = /^now[:\s]\s*/i
 // Prompts the person wrote, as opposed to notifications, peers or plugins.
 const PERSON = new Set(['composer', 'bridge', 'sdk'])
+
+// True while Send now is stopping the running turn, so that stop neither
+// pauses the queue nor starts the next item in line.
+let sendingNow = false
 
 const preview = (text: string, max = 48) => {
   const line = text.replace(/\s+/g, ' ').trim()
@@ -27,7 +33,31 @@ async function runNext($: EngineInterface) {
   await $.prompt.submit({ text: first.text, asUser: true })
 }
 
+// Sends one queued prompt now: stops the running task first, if there is one.
+async function sendNow($: EngineInterface, id: number) {
+  const pick = (await read($, items)).find(p => p.id === id)
+  if (!pick) return
+  await update($, items, q => q.filter(p => p.id !== id))
+  await update($, paused, () => false)
+  const running = await read($, turnId)
+  if (running) {
+    sendingNow = true
+    try {
+      await $.turn.abort({ turnId: running })
+    } catch {
+      sendingNow = false // the turn had already ended
+    }
+  }
+  await $.prompt.submit({ text: pick.text, asUser: true })
+}
+
 export const register: Register = on => {
+  on('turn.start', async ($, e, next) => {
+    const result = await next(e)
+    await update($, turnId, () => result.turnId)
+    return result
+  })
+
   on('prompt.submit', async ($, e, next) => {
     // Only hold prompts the person typed over a running turn; leave anything
     // with images alone, since a plugin can't resubmit attachments.
@@ -36,22 +66,22 @@ export const register: Register = on => {
 
     const id = await read($, nextId)
     await update($, nextId, n => n + 1)
-    let position = 0
-    await update($, items, q => {
-      position = q.length + 1
-      return [...q, { id, text: e.text }]
-    })
-    return { drop: `Queued #${position}: runs after Claude finishes. (Start with "now:" to send it right away.)` }
+    await update($, items, q => [...q, { id, text: e.text }])
+    // Answering without next holds the prompt quietly: it never reaches Claude.
+    return { text: e.text }
   })
 
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (e.agentId) return result // a subagent's turn, not the main loop
-    if (e.reason === 'answer') {
+    await update($, turnId, () => '')
+    if (sendingNow) {
+      sendingNow = false // Send now already submitted its prompt
+    } else if (e.reason === 'answer') {
       if (!(await read($, paused))) await runNext($)
-    } else {
+    } else if ((await read($, items)).length > 0) {
       // Stopped by you, or an error: don't keep firing prompts into it.
-      if ((await read($, items)).length > 0) await update($, paused, () => true)
+      await update($, paused, () => true)
     }
     return result
   })
@@ -60,24 +90,21 @@ export const register: Register = on => {
     const inner = await next(e)
     if (e.props.hasSurvey) return inner
     const queue = await read($, items)
-    // The Desktop app keeps its own queue (faded bubbles with Send now / ✕)
-    // and holds those messages before they reach mods, so the hint would only
-    // mislead there. Show it in the terminal alone.
-    if (queue.length === 0 && (!e.props.isWorking || e.surface !== 'terminal')) return inner
-
     const { Box, Text, Button } = $.ui.resolve(e)
+
     if (queue.length === 0) {
-      // While Claude works, a quiet reminder that typing now queues.
+      // Placeholder, so you can see the queue is loaded and listening.
       return (
         <Box flexDirection="row" gap={2}>
-          <Text dimColor>Up next · empty: type to queue (now: to interrupt)</Text>
+          <Text dimColor>
+            {e.props.isWorking ? "Up next · empty: type now and it waits here" : "Up next · empty"}
+          </Text>
           <Box flexGrow={1}>{inner}</Box>
         </Box>
       )
     }
     const isPaused = await read($, paused)
-    const shown = queue.slice(0, 3)
-    const remove = (id: number) => update($, items, q => q.filter(p => p.id !== id))
+    const shown = queue.slice(0, 4)
 
     return (
       <Box flexDirection="row" alignItems="flex-start" gap={2}>
@@ -91,7 +118,7 @@ export const register: Register = on => {
                 dimColor
                 onPress={async () => {
                   await update($, paused, () => false)
-                  if (!e.props.isWorking) await runNext($)
+                  if (!(await read($, turnId))) await runNext($)
                 }}
               />
             ) : null}
@@ -101,7 +128,14 @@ export const register: Register = on => {
             <Box key={`q${p.id}`} flexDirection="row" gap={1}>
               <Text dimColor>{i + 1}.</Text>
               <Text wrap="truncate-end">{preview(p.text)}</Text>
-              <Button key={`x${p.id}`} label="✕" plain dimColor onPress={() => remove(p.id)} />
+              <Button key={`s${p.id}`} label="↑" plain dimColor onPress={() => sendNow($, p.id)} />
+              <Button
+                key={`x${p.id}`}
+                label="✕"
+                plain
+                dimColor
+                onPress={() => update($, items, q => q.filter(x => x.id !== p.id))}
+              />
             </Box>
           ))}
           {queue.length > shown.length ? <Text dimColor>+{queue.length - shown.length} more</Text> : null}

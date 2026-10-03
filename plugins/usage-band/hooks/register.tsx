@@ -74,7 +74,10 @@ const paceText = (r: Row) =>
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 // Compact: one hairline row per window, stacked, about a quarter of the band.
-const SVG_W = 228
+// A hairline divider on the left, then the rows.
+const SEP_GAP = 16
+const CONTENT_W = 228
+const SVG_W = SEP_GAP + CONTENT_W
 const ROW_H = 15
 const svgHeight = (n: number) => n * ROW_H
 
@@ -94,7 +97,7 @@ const svgCard = (rows: Row[]) => {
   <line class="used ${r.level}" x1="${BAR_X}" x2="${used.toFixed(1)}" y1="${mid}" y2="${mid}"/>
   ${tickX === undefined ? '' : `<line class="tick" x1="${tickX}" x2="${tickX}" y1="${mid - 3.5}" y2="${mid + 3.5}"/>`}
   <text class="pct ${r.level}" x="${PCT_END}" y="${base}" text-anchor="end">${Math.round(r.pct)}%</text>
-  <text class="meta" x="${SVG_W}" y="${base}" text-anchor="end">${esc(r.resetShort)}</text>`
+  <text class="meta" x="${CONTENT_W}" y="${base}" text-anchor="end">${esc(r.resetShort)}</text>`
     })
     .join('')
   const H = svgHeight(rows.length)
@@ -114,7 +117,10 @@ const svgCard = (rows: Row[]) => {
     .used { stroke:var(--fg); stroke-width:1.75; opacity:.75; }
     .used.warn { stroke:var(--warn); opacity:1; } .used.hot { stroke:var(--hot); opacity:1; }
     .tick { stroke:var(--fg); stroke-width:1.25; opacity:.65; }
-  </style>${cells}
+    .sep { stroke:var(--track); stroke-width:1; }
+  </style>
+  <line class="sep" x1="0.5" x2="0.5" y1="1" y2="${H - 1}"/>
+  <g transform="translate(${SEP_GAP},0)">${cells}</g>
 </svg>`
 }
 
