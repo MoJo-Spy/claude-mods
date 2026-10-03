@@ -13,14 +13,14 @@ Claude Code **v2.1.287 or later** (mods are built in from that version). Check w
 ## Install (once per account / computer)
 
 ```bash
-claude plugin marketplace add <your-github-user>/claude-mods
+claude plugin marketplace add pawandeepdhall/claude-mods
 claude plugin install usage-band@my-claude-mods
 ```
 
-Or inside a session: `/plugin marketplace add <your-github-user>/claude-mods`, then `/plugin install usage-band@my-claude-mods`.
+Or inside a session: `/plugin marketplace add pawandeepdhall/claude-mods`, then `/plugin install usage-band@my-claude-mods`.
 If a session is already open, run `/reload-plugins`.
 
-The repo can stay private: Claude Code uses your existing git / GitHub credentials to fetch it (for example run `gh auth login` once on each computer).
+The repo is public, so no GitHub login is needed to install.
 
 ## Update
 
