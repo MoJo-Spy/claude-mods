@@ -4,6 +4,8 @@ import type { EngineInterface, Register } from 'claude-code'
 const suggestions = atom({ plugin: 'next-steps', key: 'suggestions' } as const, [] as string[])
 // What the person last asked, so the suggestions follow from it.
 const lastPrompt = atom({ plugin: 'next-steps', key: 'lastPrompt' } as const, '')
+// True while the suggestions for the last reply are being written.
+const loading = atom({ plugin: 'next-steps', key: 'loading' } as const, false)
 
 const SYSTEM =
   'You suggest what a user might ask a coding assistant next. Reply with only a JSON array of ' +
@@ -28,6 +30,7 @@ function parseList(text: string): string[] {
 
 async function suggest($: EngineInterface, answer: string) {
   const asked = await read($, lastPrompt)
+  await update($, loading, () => true)
   const r = await $.model.complete({
     model: 'haiku',
     system: SYSTEM,
@@ -36,6 +39,7 @@ async function suggest($: EngineInterface, answer: string) {
     timeoutMs: 15000,
   })
   await update($, suggestions, () => (r.isAnswered ? parseList(r.text) : []))
+  await update($, loading, () => false)
 }
 
 async function send($: EngineInterface, text: string) {
@@ -56,24 +60,40 @@ export const register: Register = on => {
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (!e.agentId && e.reason === 'answer' && e.answer.trim()) {
-      void suggest($, e.answer).catch(() => undefined)
+      void suggest($, e.answer).catch(() => update($, loading, () => false))
     }
     return result
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const inner = await next(e)
-    if (e.props.hasSurvey || e.props.isWorking) return inner
+    if (e.props.hasSurvey) return inner
     const list = await read($, suggestions)
-    if (list.length === 0) return inner
-
     const { Box, Text, Button } = $.ui.resolve(e)
+
+    if (e.props.isWorking || list.length === 0) {
+      // Placeholder, so the spot never looks broken or empty.
+      const hint = e.props.isWorking
+        ? 'Next steps appear when Claude finishes'
+        : (await read($, loading))
+          ? 'Finding next steps…'
+          : 'No next steps yet'
+      return (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Text dimColor>{hint}</Text>
+          <Box flexGrow={1}>{inner}</Box>
+        </Box>
+      )
+    }
+
     return (
       <Box flexDirection="row" alignItems="center" gap={1}>
-        <Text dimColor>Next:</Text>
-        {list.map((s, i) => (
-          <Button key={`n${i}`} label={s} dimColor onPress={() => send($, s)} />
-        ))}
+        {/* One column of suggestions, each a button that sends it; a little air between. */}
+        <Box flexDirection="column" alignItems="flex-start" gap={1}>
+          {list.map((s, i) => (
+            <Button key={`n${i}`} label={`→  ${s}`} dimColor onPress={() => send($, s)} />
+          ))}
+        </Box>
         <Box flexGrow={1}>{inner}</Box>
       </Box>
     )
